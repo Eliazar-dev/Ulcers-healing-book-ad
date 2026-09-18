@@ -1,0 +1,6 @@
+.env
+dist/
+node_modules/
+fix_book.py
+.vscode/
+*.code-workspace
