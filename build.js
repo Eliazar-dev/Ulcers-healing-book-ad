@@ -3,7 +3,7 @@ const path = require('path');
 
 const SOURCE = path.join(__dirname, 'natural-ulcer-cure-book-ad.html');
 const OUT_DIR = path.join(__dirname, 'dist');
-const OUT_FILE = path.join(OUT_DIR, 'natural-ulcer-cure-book-ad.html');
+const OUT_FILE = path.join(OUT_DIR, 'index.html');
 
 let SUPABASE_URL = process.env.SUPABASE_URL || '';
 let SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
@@ -48,5 +48,5 @@ if (!fs.existsSync(OUT_DIR)) {
 }
 
 fs.writeFileSync(OUT_FILE, html);
-console.log('Build complete: dist/natural-ulcer-cure-book-ad.html');
+console.log('Build complete: dist/index.html');
 console.log(`  Supabase URL: ${SUPABASE_URL}`);
