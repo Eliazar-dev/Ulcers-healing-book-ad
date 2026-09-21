@@ -283,12 +283,14 @@
     position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.6);
     display:flex; align-items:center; justify-content:center;
     opacity:0; pointer-events:none; transition:opacity .3s ease;
+    padding:20px;
   }
   .modal-overlay.active{opacity:1; pointer-events:auto;}
   .modal{
-    background:var(--parchment); max-width:400px; width:90%; padding:24px;
+    background:var(--parchment); max-width:400px; width:100%; padding:24px;
     border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,0.4);
     transform:translateY(20px); transition:transform .3s ease;
+    max-height:90vh; overflow-y:auto;
   }
   .modal-overlay.active .modal{transform:translateY(0);}
   .modal h3{color:var(--forest); font-size:18px; margin-bottom:8px;}
@@ -297,14 +299,14 @@
   .form-group label{display:block; color:var(--forest); font-size:13px; font-weight:600; margin-bottom:6px;}
   .form-group input{
     width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:4px;
-    font-size:14px; font-family:inherit;
+    font-size:14px; font-family:inherit; box-sizing:border-box;
   }
   .form-group input:focus{outline:2px solid var(--amber); border-color:var(--amber);}
   .form-error{color:#c44; font-size:12px; margin-top:4px; display:none;}
   .privacy-note{font-size:11px; color:#666; margin-bottom:16px; line-height:1.4;}
-  .modal-actions{display:flex; gap:10px; justify-content:flex-end;}
-  .modal-close{background:transparent; border:1px solid #ccc; color:#333;}
-  .modal-submit{background:#25D366; color:#0b2018;}
+  .modal-actions{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:20px;}
+  .modal-close{background:transparent; border:1px solid #ccc; color:#333; padding:10px 16px; border-radius:4px; font-size:14px; cursor:pointer;}
+  .modal-submit{background:#25D366; color:#0b2018; padding:10px 16px; border-radius:4px; font-size:14px; cursor:pointer; border:none;}
   .modal-submit:hover{background:#2fe377;}
 
   /* ---------- LEADS TABLE ---------- */
@@ -957,6 +959,11 @@ document.getElementById('clear-leads-btn').addEventListener('click', async ()=>{
       dashboard.style.display = 'block';
       loadDashboard();
       loadLeads();
+      // Refresh data every 30 seconds
+      setInterval(() => {
+        loadDashboard();
+        loadLeads();
+      }, 30000);
     } else {
       gateErr.style.display = 'block';
     }
