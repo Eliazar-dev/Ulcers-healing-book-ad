@@ -959,11 +959,11 @@ document.getElementById('clear-leads-btn').addEventListener('click', async ()=>{
       dashboard.style.display = 'block';
       loadDashboard();
       loadLeads();
-      // Refresh data every 30 seconds
+      // Refresh data every 5 seconds
       setInterval(() => {
         loadDashboard();
         loadLeads();
-      }, 30000);
+      }, 5000);
     } else {
       gateErr.style.display = 'block';
     }
