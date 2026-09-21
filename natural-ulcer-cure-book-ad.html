@@ -36,18 +36,22 @@
   }
   .wrap{width:100%; max-width:480px; margin:0 auto; padding:0 16px;}
   @media (min-width:768px){.wrap{max-width:1100px; padding:0 32px;}}
-  .safe-top{padding-top:env(safe-area-inset-top);}
-  .safe-bottom{padding-bottom:env(safe-area-inset-bottom);}
+  
+  /* ---------- MOBILE NAVBAR FIX ---------- */
+  @media (max-width:767px){
+    #main-view{padding-top:70px;}
+  }
 
   /* ---------- NAV ---------- */
   nav{
     position:fixed; top:0; left:0; right:0; z-index:80;
     display:flex; align-items:center; justify-content:space-between;
     padding:16px 16px;
+    padding-top:calc(16px + env(safe-area-inset-top));
     background:rgba(15,30,25,0.94);
     border-bottom:1px solid var(--line-light);
   }
-  @media (min-width:768px){nav{padding:18px 32px;}}
+  @media (min-width:768px){nav{padding:18px 32px; padding-top:calc(18px + env(safe-area-inset-top));}}
   .brand{color:var(--parchment); font-family:'Fraunces', serif; font-size:16px; text-decoration:none; display:flex; align-items:center; gap:9px;}
   @media (min-width:768px){.brand{font-size:17px;}}
   .brand .leaf{width:9px; height:9px; border-radius:50% 0; background:var(--amber-light); transform:rotate(45deg);}
@@ -67,13 +71,14 @@
   .hero{
     position:relative; min-height:100vh; overflow:hidden;
     background:radial-gradient(ellipse 80% 60% at 28% 8%, #f6f2e2 0%, #dfe8c8 32%, #a9c48c 60%, #6f9767 88%);
-    display:flex; flex-direction:column; align-items:center; text-align:center; gap:20px; padding:32px 16px 40px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:20px; padding:60px 16px 40px;
   }
+  @media (max-width:767px){.hero{padding-top:80px; padding-bottom:40px;}}
   @media (min-width:768px){.hero{flex-direction:row; text-align:left; gap:48px; padding:80px 32px;}}
   #hero-canvas{position:absolute; inset:0; z-index:1;}
   .hero-grid{
     position:relative; z-index:2; width:100%; max-width:480px; margin:0 auto;
-    display:flex; flex-direction:column; gap:20px;
+    display:flex; flex-direction:column; gap:20px; justify-content:center;
   }
   @media (min-width:768px){.hero-grid{max-width:1100px; display:grid; grid-template-columns:1.05fr 0.95fr; gap:40px; align-items:center;}}
 
@@ -95,10 +100,10 @@
   .btn-outline:hover{border-color:var(--forest);}
 
   /* ---------- 3D BOOK ---------- */
-  .book-stage{perspective:1700px; display:flex; justify-content:center; align-items:center; min-height:300px;}
+  .book-stage{perspective:1700px; display:flex; justify-content:center; align-items:center; min-height:250px;}
   @media (min-width:768px){.book-stage{min-height:420px;}}
   .book-3d{
-    position:relative; width:min(200px, 50vw); aspect-ratio:548/817;
+    position:relative; width:min(180px, 45vw); aspect-ratio:548/817;
     transform-style:preserve-3d;
     transform:rotateY(-24deg) rotateX(6deg);
     cursor:grab;
