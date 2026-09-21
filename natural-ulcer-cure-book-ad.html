@@ -228,6 +228,42 @@
   .admin-actions{display:flex; gap:12px; margin-top:26px;}
   .admin-actions button{background:transparent; border:1px solid var(--line-light); color:var(--sage); padding:9px 16px; border-radius:3px; font-size:13px; transition:border-color .2s, color .2s;}
   .admin-actions button:hover{border-color:var(--amber); color:var(--amber-light);}
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.6);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  .modal-overlay.active{opacity:1; pointer-events:auto;}
+  .modal{
+    background:var(--parchment); max-width:400px; width:90%; padding:24px;
+    border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,0.4);
+    transform:translateY(20px); transition:transform .3s ease;
+  }
+  .modal-overlay.active .modal{transform:translateY(0);}
+  .modal h3{color:var(--forest); font-size:18px; margin-bottom:8px;}
+  .modal p{color:#3d3d34; font-size:14px; margin-bottom:16px; line-height:1.5;}
+  .form-group{margin-bottom:16px;}
+  .form-group label{display:block; color:var(--forest); font-size:13px; font-weight:600; margin-bottom:6px;}
+  .form-group input{
+    width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:4px;
+    font-size:14px; font-family:inherit;
+  }
+  .form-group input:focus{outline:2px solid var(--amber); border-color:var(--amber);}
+  .form-error{color:#c44; font-size:12px; margin-top:4px; display:none;}
+  .privacy-note{font-size:11px; color:#666; margin-bottom:16px; line-height:1.4;}
+  .modal-actions{display:flex; gap:10px; justify-content:flex-end;}
+  .modal-close{background:transparent; border:1px solid #ccc; color:#333;}
+  .modal-submit{background:#25D366; color:#0b2018;}
+  .modal-submit:hover{background:#2fe377;}
+
+  /* ---------- LEADS TABLE ---------- */
+  .leads-table{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
+  .leads-table th{background:var(--forest-2); color:var(--parchment); padding:10px; text-align:left; font-weight:500;}
+  .leads-table td{border-bottom:1px solid var(--line-light); padding:10px; color:var(--parchment);}
+  .leads-table tr:hover{background:rgba(168,195,160,0.1);}
+  .leads-empty{text-align:center; padding:24px; color:var(--sage); font-size:13px;}
 </style>
 </head>
 <body>
@@ -402,7 +438,47 @@
         <button id="refresh-btn">Refresh</button>
         <button id="reset-btn">Reset all data</button>
       </div>
+
+      <h3 class="admin-section-title">Lead Database</h3>
+      <table class="leads-table" id="leads-table">
+        <thead><tr><th>Date</th><th>Time</th><th>Name</th><th>Phone Number</th><th>Source</th></tr></thead>
+        <tbody id="leads-body"></tbody>
+      </table>
+      <p class="leads-empty" id="leads-empty" style="display:none;">No leads recorded yet.</p>
+
+      <div class="admin-actions">
+        <button id="refresh-leads-btn">Refresh Leads</button>
+        <button id="export-leads-btn">Export Leads (CSV)</button>
+        <button id="clear-leads-btn">Clear All Leads</button>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- PHONE FORM MODAL -->
+<div class="modal-overlay" id="phone-modal">
+  <div class="modal">
+    <h3>Enter Your Details</h3>
+    <p>Please provide your contact information so we can connect with you on WhatsApp about your order.</p>
+    <form id="phone-form">
+      <div class="form-group">
+        <label for="name-input">Full Name</label>
+        <input type="text" id="name-input" placeholder="e.g., John Doe" required>
+      </div>
+      <div class="form-group">
+        <label for="phone-input">Phone Number (with country code)</label>
+        <input type="tel" id="phone-input" placeholder="e.g., 254700000000" required>
+        <p class="form-error" id="phone-error">Please enter a valid phone number</p>
+      </div>
+      <p class="privacy-note">Your information will be used solely to contact you about your order. We respect your privacy.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn modal-close" id="modal-close">Cancel</button>
+        <button type="submit" class="btn modal-submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.07L2 22l5.07-1.38A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2z" fill="#0b2018"/></svg>
+          Continue to WhatsApp
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -586,16 +662,123 @@ async function clearClickLog(){
 }
 
 /* ========= WHATSAPP CLICK TRACKING ========= */
+let currentSource = '';
+
 function openWhatsApp(source){
-  recordClick(source);
-  const url = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(CONFIG.whatsappMessage)}`;
-  window.open(url, '_blank');
+  currentSource = source;
+  document.getElementById('phone-modal').classList.add('active');
+  document.getElementById('name-input').focus();
 }
+
+function validatePhoneNumber(phone){
+  const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  const phoneRegex = /^\+?[\d]{10,15}$/;
+  return phoneRegex.test(cleaned);
+}
+
+async function recordLead(name, phoneNumber, source){
+  if(typeof window.storage !== 'undefined'){
+    try{
+      const key = 'leads-database';
+      let leads = [];
+      try{
+        const existing = await window.storage.get(key, true);
+        if(existing && existing.value) leads = JSON.parse(existing.value);
+      }catch(e){ leads = []; }
+      leads.push({ 
+        ts: Date.now(), 
+        name: name,
+        phone: phoneNumber, 
+        source: source 
+      });
+      if(leads.length > 1000) leads = leads.slice(leads.length - 1000);
+      await window.storage.set(key, JSON.stringify(leads), true);
+    }catch(err){ console.error('Could not record lead:', err); }
+    return;
+  }
+  if(supabaseReady()){
+    try{
+      await fetch(`${CONFIG.supabaseUrl}/rest/v1/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CONFIG.supabaseAnonKey,
+          'Authorization': `Bearer ${CONFIG.supabaseAnonKey}`
+        },
+        body: JSON.stringify({ name: name, phone: phoneNumber, source: source })
+      });
+    }catch(err){ console.error('Could not record lead:', err); }
+  }
+}
+
 document.querySelectorAll('[data-wa-click]').forEach(btn=>{
   btn.addEventListener('click', (e)=>{
     e.preventDefault();
     openWhatsApp(btn.getAttribute('data-wa-click') || 'unknown');
   });
+});
+
+/* ========= PHONE FORM MODAL ========= */
+document.addEventListener('DOMContentLoaded', function() {
+  const phoneModal = document.getElementById('phone-modal');
+  const phoneForm = document.getElementById('phone-form');
+  const nameInput = document.getElementById('name-input');
+  const phoneInput = document.getElementById('phone-input');
+  const phoneError = document.getElementById('phone-error');
+  const modalClose = document.getElementById('modal-close');
+
+  if(modalClose) {
+    modalClose.addEventListener('click', () => {
+      phoneModal.classList.remove('active');
+      nameInput.value = '';
+      phoneInput.value = '';
+      phoneError.style.display = 'none';
+    });
+  }
+
+  if(phoneModal) {
+    phoneModal.addEventListener('click', (e) => {
+      if(e.target === phoneModal) {
+        phoneModal.classList.remove('active');
+        nameInput.value = '';
+        phoneInput.value = '';
+        phoneError.style.display = 'none';
+      }
+    });
+  }
+
+  if(phoneForm) {
+    phoneForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const phoneNumber = phoneInput.value.trim();
+      
+      if(!validatePhoneNumber(phoneNumber)){
+        phoneError.style.display = 'block';
+        return;
+      }
+      
+      phoneError.style.display = 'none';
+      
+      // Record the lead with name and phone
+      await recordLead(name, phoneNumber, currentSource);
+      
+      // Record the click
+      recordClick(currentSource);
+      
+      // Create personalized message with user's name and phone
+      const personalizedMessage = `Hi, I'm ${name}. ${CONFIG.whatsappMessage} My phone number is ${phoneNumber}.`;
+      
+      // Open WhatsApp with seller's number and personalized message
+      const url = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(personalizedMessage)}`;
+      window.open(url, '_blank');
+      
+      // Close modal
+      phoneModal.classList.remove('active');
+      nameInput.value = '';
+      phoneInput.value = '';
+    });
+  }
 });
 
 /* ========= ROUTING: #admin ========= */
@@ -614,6 +797,93 @@ function checkRoute(){
 window.addEventListener('hashchange', checkRoute);
 checkRoute();
 
+/* ========= LEADS MANAGEMENT ========= */
+async function fetchLeads(){
+  if(typeof window.storage !== 'undefined'){
+    try{
+      const existing = await window.storage.get('leads-database', true);
+      if(existing && existing.value){
+        return JSON.parse(existing.value).map(l => ({ ts: l.ts, name: l.name, phone: l.phone, source: l.source }));
+      }
+    }catch(e){}
+    return [];
+  }
+  if(supabaseReady()){
+    try{
+      const res = await fetch(`${CONFIG.supabaseUrl}/rest/v1/leads?select=name,phone,source,created_at&order=created_at.desc&limit=1000`, {
+        headers: { 'apikey': CONFIG.supabaseAnonKey, 'Authorization': `Bearer ${CONFIG.supabaseAnonKey}` }
+      });
+      const rows = await res.json();
+      return rows.map(r => ({ ts: new Date(r.created_at).getTime(), name: r.name, phone: r.phone, source: r.source })).reverse();
+    }catch(e){ console.error('Could not load leads:', e); }
+  }
+  return [];
+}
+
+async function clearLeads(){
+  if(typeof window.storage !== 'undefined'){
+    try{ await window.storage.set('leads-database', JSON.stringify([]), true); }catch(e){}
+    return;
+  }
+  if(supabaseReady()){
+    try{
+      await fetch(`${CONFIG.supabaseUrl}/rest/v1/leads?id=gt.0`, {
+        method: 'DELETE',
+        headers: { 'apikey': CONFIG.supabaseAnonKey, 'Authorization': `Bearer ${CONFIG.supabaseAnonKey}` }
+      });
+    }catch(e){ console.error(e); }
+  }
+}
+
+async function loadLeads(){
+  const leads = await fetchLeads();
+  
+  const tbody = document.getElementById('leads-body');
+  const emptyMsg = document.getElementById('leads-empty');
+  tbody.innerHTML = '';
+  
+  if(leads.length === 0){
+    emptyMsg.style.display = 'block';
+  } else {
+    emptyMsg.style.display = 'none';
+    [...leads].reverse().slice(0, 50).forEach(lead=>{
+      const d = new Date(lead.ts);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${d.toLocaleDateString()}</td><td>${d.toLocaleTimeString()}</td><td>${lead.name}</td><td>${lead.phone}</td><td>${lead.source || 'unknown'}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+document.getElementById('refresh-leads-btn').addEventListener('click', loadLeads);
+
+document.getElementById('export-leads-btn').addEventListener('click', async ()=>{
+  const leads = await fetchLeads();
+  if(leads.length === 0){
+    alert('No leads to export');
+    return;
+  }
+  
+  const csv = 'Date,Time,Name,Phone Number,Source\n' + leads.map(l => {
+    const d = new Date(l.ts);
+    return `${d.toLocaleDateString()},${d.toLocaleTimeString()},${l.name},${l.phone},${l.source || 'unknown'}`;
+  }).join('\n');
+  
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+});
+
+document.getElementById('clear-leads-btn').addEventListener('click', async ()=>{
+  if(!confirm('Clear all leads data? This cannot be undone.')) return;
+  await clearLeads();
+  loadLeads();
+});
+
 /* ========= ADMIN DASHBOARD ========= */
 (function initAdmin(){
   const gate = document.getElementById('gate');
@@ -629,6 +899,7 @@ checkRoute();
       gate.style.display = 'none';
       dashboard.style.display = 'block';
       loadDashboard();
+      loadLeads();
     } else {
       gateErr.style.display = 'block';
     }
